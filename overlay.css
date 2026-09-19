@@ -13,6 +13,7 @@
   box-sizing: border-box;
 }
 
+#gaze-video,
 #gaze-frame {
   width: 132px;
   height: 176px;
@@ -21,6 +22,46 @@
   overflow: hidden;
   background: #121214;
   pointer-events: auto;
+}
+
+#gaze-video {
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1);
+  cursor: pointer;
+}
+
+#gaze-frame {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+}
+
+#gaze-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 132px;
+  height: 176px;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #f3f3f1;
+  background: rgba(8, 8, 9, 0.72);
+  border-radius: 12px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#gaze-hint[hidden] {
+  display: none;
 }
 
 #gaze-hud {

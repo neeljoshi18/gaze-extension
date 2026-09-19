@@ -28,7 +28,10 @@ function sampleFromResult(result) {
   const shapes = result?.faceBlendshapes?.[0]?.categories;
   const matrix = result?.facialTransformationMatrixes?.[0]?.data;
   const pitch = matrix && matrix.length > 6 ? Math.asin(clamp(-matrix[6], -1, 1)) : 0;
-  const iris = (axis(landmarks[468], landmarks[159], landmarks[145]) + axis(landmarks[473], landmarks[386], landmarks[374])) / 2;
+  const iris =
+    (axis(landmarks[468], landmarks[159], landmarks[145]) +
+      axis(landmarks[473], landmarks[386], landmarks[374])) /
+    2;
   return {
     present: true,
     headPitch: pitch,
@@ -112,9 +115,7 @@ class GazeController {
   }
 }
 
-const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
-const hint = document.getElementById("hint");
 const controller = new GazeController();
 const calib = [];
 let landmarker = null;
@@ -122,23 +123,10 @@ let lastTs = 0;
 let enabled = true;
 let sensitivity = "medium";
 let status = "boot";
-let raf = 0;
-let stream = null;
-let starting = false;
+let loading = false;
 
 function post(msg) {
   parent.postMessage({ source: "gaze", ...msg }, "*");
-}
-
-function setHint(text) {
-  if (!hint) return;
-  if (!text) {
-    hint.hidden = true;
-    hint.textContent = "";
-    return;
-  }
-  hint.hidden = false;
-  hint.textContent = text;
 }
 
 window.addEventListener("message", (event) => {
@@ -146,58 +134,24 @@ window.addEventListener("message", (event) => {
   if (!data || data.source !== "gaze-host") return;
   if (typeof data.enabled === "boolean") enabled = data.enabled;
   if (data.sensitivity) sensitivity = data.sensitivity;
-  if (!enabled) stop();
-  else if (status === "stopped" || status === "boot" || status === "error") start();
-});
-
-document.body.addEventListener("click", () => {
-  if (!enabled) return;
-  start();
-});
-
-async function openCamera() {
-  const tries = [
-    { video: { facingMode: "user" }, audio: false },
-    { video: true, audio: false },
-  ];
-  let last = null;
-  for (const constraints of tries) {
-    try {
-      return await navigator.mediaDevices.getUserMedia(constraints);
-    } catch (err) {
-      last = err;
-    }
+  if (data.type === "config") {
+    if (enabled && !landmarker) void boot();
+    return;
   }
-  throw last || new Error("camera");
-}
+  if (data.type === "frame" && data.bitmap) {
+    if (enabled) void onFrame(data.bitmap, data.ts);
+    else data.bitmap.close?.();
+  }
+});
 
 async function loadLandmarker() {
   const local = chrome.runtime.getURL("mediapipe/");
-  let fileset;
-  try {
-    const probe = await fetch(`${local}vision_wasm_internal.wasm`, { method: "HEAD" });
-    fileset = probe.ok
-      ? await FilesetResolver.forVisionTasks(local)
-      : {
-          wasmLoaderPath: `${local}vision_wasm_internal.js`,
-          wasmBinaryPath:
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm/vision_wasm_internal.wasm",
-        };
-  } catch {
-    fileset = await FilesetResolver.forVisionTasks(local);
-  }
-  const modelLocal = `${local}face_landmarker.task`;
-  const modelCdn =
-    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-  let modelAssetPath = modelCdn;
-  try {
-    const probe = await fetch(modelLocal, { method: "HEAD" });
-    if (probe.ok) modelAssetPath = modelLocal;
-  } catch {
-    modelAssetPath = modelCdn;
-  }
+  const fileset = await FilesetResolver.forVisionTasks(local);
   const opts = (delegate) => ({
-    baseOptions: { modelAssetPath, delegate },
+    baseOptions: {
+      modelAssetPath: `${local}face_landmarker.task`,
+      delegate,
+    },
     runningMode: "VIDEO",
     numFaces: 1,
     outputFaceBlendshapes: true,
@@ -210,97 +164,68 @@ async function loadLandmarker() {
   }
 }
 
-async function start() {
-  if (starting || (stream && landmarker && status !== "error" && status !== "stopped")) return;
-  starting = true;
+async function boot() {
+  if (loading || landmarker) return;
+  loading = true;
   status = "starting";
-  post({ type: "status", label: "Camera" });
-  setHint("Starting…");
+  post({ type: "status", label: "Loading" });
   try {
-    if (!stream) {
-      stream = await openCamera();
-      video.srcObject = stream;
-      video.muted = true;
-      video.playsInline = true;
-      await video.play();
-    }
-    setHint("");
-    post({ type: "status", label: "Loading" });
-    if (!landmarker) landmarker = await loadLandmarker();
+    landmarker = await loadLandmarker();
     controller.reset();
     calib.length = 0;
     lastTs = 0;
     status = "calibrating";
     post({ type: "status", label: "Calibrate" });
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(loop);
   } catch (err) {
     status = "error";
-    const name = err?.name || "";
-    const cam = /NotAllowed|NotFound|NotReadable|Security|Overconstrained/i.test(name);
-    post({ type: "status", label: cam ? "Allow cam" : "Tap here" });
-    setHint(cam ? "Tap here, then Allow camera" : "Tap to retry");
-    console.warn("Gaze", err);
+    post({ type: "status", label: "Model fail" });
+    console.warn("Gaze model", err);
   } finally {
-    starting = false;
+    loading = false;
   }
 }
 
-function stop() {
-  cancelAnimationFrame(raf);
-  stream?.getTracks().forEach((t) => t.stop());
-  stream = null;
-  video.srcObject = null;
-  landmarker?.close();
-  landmarker = null;
-  status = "stopped";
-  const ctx = canvas.getContext("2d");
-  ctx?.clearRect(0, 0, canvas.width, canvas.height);
-  post({ type: "status", label: "Paused" });
-  setHint("Tap to start camera");
-}
-
-function loop() {
-  raf = requestAnimationFrame(loop);
-  if (!enabled || !landmarker || video.readyState < 2) return;
-  const now = performance.now();
-  if (now - lastTs < 33) return;
-  const ts = Math.max(lastTs + 1, now);
-  lastTs = ts;
-  let result;
+async function onFrame(bitmap, ts) {
   try {
-    result = landmarker.detectForVideo(video, ts);
-  } catch {
-    return;
-  }
-  const sample = sampleFromResult(result);
-  if (canvas && video.videoWidth) {
-    if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
-    if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+    if (!landmarker) {
+      await boot();
+      if (!landmarker) return;
+    }
+    if (!canvas) return;
+    if (canvas.width !== bitmap.width) canvas.width = bitmap.width;
+    if (canvas.height !== bitmap.height) canvas.height = bitmap.height;
     const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      if (sample) {
-        ctx.fillStyle = "#8fa196";
-        ctx.beginPath();
-        ctx.arc(canvas.width / 2, canvas.height / 2, 3, 0, Math.PI * 2);
-        ctx.fill();
+    ctx.drawImage(bitmap, 0, 0);
+    const now = Math.max(lastTs + 1, ts || performance.now());
+    lastTs = now;
+    let result;
+    try {
+      result = landmarker.detectForVideo(canvas, now);
+    } catch {
+      return;
+    }
+    const sample = sampleFromResult(result);
+    if (status === "calibrating") {
+      if (sample?.present) calib.push(sample);
+      if (calib.length >= 24) {
+        controller.calibrate(calib);
+        status = "running";
+        post({ type: "status", label: "Eyes" });
       }
+      return;
     }
-  }
-  if (status === "calibrating") {
-    if (sample?.present) calib.push(sample);
-    if (calib.length >= 36) {
-      controller.calibrate(calib);
-      status = "running";
-      post({ type: "status", label: "Eyes" });
+    const frame = controller.update(sample, now, sensitivity);
+    if (frame.label) {
+      post({
+        type: "status",
+        label: frame.mode === "lost" ? "Find a face" : frame.mode === "eyes" ? "Eyes" : "Face",
+      });
     }
-    return;
+    if (frame.intent) post({ type: "scroll", dir: frame.intent, reason: frame.reason });
+  } finally {
+    bitmap.close?.();
   }
-  const frame = controller.update(sample, now, sensitivity);
-  if (frame.label) post({ type: "status", label: frame.mode === "lost" ? "Find a face" : frame.mode === "eyes" ? "Eyes" : "Face" });
-  if (frame.intent) post({ type: "scroll", dir: frame.intent, reason: frame.reason });
 }
 
 post({ type: "ready" });
-start();
+boot();
