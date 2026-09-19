@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gaze</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Gaze</strong>
+      <span id="state">On</span>
+    </header>
+    <p class="lede">Scroll Instagram Reels with your face and eyes.</p>
+    <label class="row">
+      <span>Enabled</span>
+      <input id="enabled" type="checkbox" checked />
+    </label>
+    <label class="row">
+      <span>Sensitivity</span>
+      <select id="sensitivity">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <a id="open" href="https://www.instagram.com/reels/" target="_blank" rel="noopener">Open Instagram Reels</a>
+    <p class="hint">Look down for next, up for previous. Alt+G toggles. Camera stays on this device.</p>
+    <script src="popup.js"></script>
+  </body>
+</html>

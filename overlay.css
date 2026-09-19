@@ -1,0 +1,63 @@
+#gaze-root {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 2147483646;
+  width: 132px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #f3f3f1;
+  pointer-events: none;
+}
+
+#gaze-root * {
+  box-sizing: border-box;
+}
+
+#gaze-frame {
+  width: 132px;
+  height: 176px;
+  border: 1px solid #2c2c30;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #121214;
+  pointer-events: auto;
+}
+
+#gaze-hud {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid #2c2c30;
+  border-radius: 10px;
+  background: #121214;
+  pointer-events: auto;
+}
+
+#gaze-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a9a96;
+}
+
+#gaze-toggle {
+  border: 0;
+  background: #e8eae8;
+  color: #0a0a0b;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  height: 22px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+#gaze-toggle[data-on="false"] {
+  background: #1c1c20;
+  color: #f3f3f1;
+  border: 1px solid #2c2c30;
+}
