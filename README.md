@@ -1,14 +1,15 @@
 Gaze — Chrome extension
 =======================
 
-1. Unzip this archive. Open the folder that contains manifest.json.
-2. Chrome → chrome://extensions
-3. Turn on Developer mode (top right)
-4. Load unpacked → select that folder
-5. Open https://www.instagram.com/reels/ and allow the camera
+1. Unzip. Open the folder that contains manifest.json
+   (if GitHub zip, that folder is named gaze-extension-main).
+2. Chrome → chrome://extensions → Developer mode on
+3. Load unpacked → select that folder
+   If already loaded: click Reload on the Gaze card. Allow the camera permission.
+4. Open https://www.instagram.com/reels/
+5. Click the black camera box (top left) and Allow camera when Chrome asks.
 
-Look down (or nod) for the next reel, look up for the previous.
-If your face is still, Gaze reads your eyes. Alt+G toggles it.
+Look down / nod down = next reel. Look up = previous.
+Wait until the chip says Eyes or Face. Alt+G toggles.
 
-The eye model is fetched from Google/jsDelivr the first time (a few MB).
-Video is processed on your computer. Nothing is uploaded.
+Video stays on your machine. First load may take a few seconds.

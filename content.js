@@ -63,7 +63,7 @@
     const wrap = document.createElement("div");
     wrap.id = "gaze-root";
     wrap.innerHTML = `
-      <iframe id="gaze-frame" title="Gaze camera" allow="camera"></iframe>
+      <iframe id="gaze-frame" title="Gaze camera" allow="camera *"></iframe>
       <div id="gaze-hud">
         <span id="gaze-label">Gaze</span>
         <button id="gaze-toggle" type="button">On</button>
@@ -71,6 +71,8 @@
     `;
     document.documentElement.appendChild(wrap);
     const iframe = wrap.querySelector("#gaze-frame");
+    iframe.setAttribute("allow", "camera *;");
+    iframe.allow = "camera";
     iframe.src = chrome.runtime.getURL("tracker.html");
     wrap.querySelector("#gaze-toggle").addEventListener("click", () => {
       chrome.storage.local.set({ enabled: !STATE.enabled });

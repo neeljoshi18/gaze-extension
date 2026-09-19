@@ -11,6 +11,8 @@
         height: 100%;
         background: #080809;
         overflow: hidden;
+        cursor: pointer;
+        font-family: ui-sans-serif, system-ui, sans-serif;
       }
       video,
       canvas {
@@ -21,14 +23,30 @@
         object-fit: cover;
         transform: scaleX(-1);
       }
-      video {
-        opacity: 0;
+      #hint {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 12px;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        line-height: 1.35;
+        color: #f3f3f1;
+        background: rgba(8, 8, 9, 0.72);
+        z-index: 2;
+      }
+      #hint[hidden] {
+        display: none;
       }
     </style>
   </head>
   <body>
-    <video id="video" muted playsinline></video>
+    <video id="video" muted playsinline autoplay></video>
     <canvas id="overlay"></canvas>
+    <div id="hint">Tap to start camera</div>
     <script type="module" src="tracker.js"></script>
   </body>
 </html>

@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Gaze — Scroll Reels with your eyes",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "On Instagram Reels, open your camera and scroll with your face and eyes.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "camera"],
   "host_permissions": [
     "https://www.instagram.com/*",
     "https://instagram.com/*",
